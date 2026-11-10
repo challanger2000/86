@@ -1,0 +1,55 @@
+name: Real Win95 32-bit installer startup chain (synthetic)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/win95-installer-fixture.c'
+      - 'tools/stage_private_cakewalk.py'
+      - '.github/workflows/verify-win95-32bit-installer.yml'
+permissions:
+  contents: read
+jobs:
+  real-guest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare QEMU, FAT and Windows 95 compatible C compiler
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq qemu-system-x86 p7zip-full gcc-mingw-w64-i686
+          python -m pip install --disable-pip-version-check pyfatfs==1.1.0 setuptools==80.9.0
+      - name: Build synthetic Win32 fixture and test ZIP
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/private"
+          i686-w64-mingw32-gcc -Os -s -mwindows -o "$RUNNER_TEMP/private/SETUPCW9.EXE" tests/win95-installer-fixture.c
+          file "$RUNNER_TEMP/private/SETUPCW9.EXE"
+          python - <<'PY'
+          import os,zipfile
+          from pathlib import Path
+          base=Path(os.environ['RUNNER_TEMP'])/'private'
+          raw=(base/'SETUPCW9.EXE').read_bytes()
+          assert raw[:2]==b'MZ' and b'Wise fixture' in raw[:100000]
+          with zipfile.ZipFile(base/'synthetic-installer.zip','w',compression=zipfile.ZIP_DEFLATED) as z:
+              z.writestr('CW9/SETUPCW9.EXE',raw)
+              z.writestr('CW9/SETUPCW9.W02',b'synthetic test data 2'*500)
+              z.writestr('CW9/SETUPCW9.W03',b'synthetic test data 3'*500)
+          print('Synthetic only: no vendor installer in repository or build')
+          PY
+      - name: Obtain disposable Win95 OSR2 disk and stage the synthetic Windows executable
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 240 'https://www.rekoba.de/~cs/v86/win95/Windows95b_p9x-0.9.91_512MB.img.7z' -o "$RUNNER_TEMP/private/source.7z"
+          7z x -y "-o$RUNNER_TEMP/private" "$RUNNER_TEMP/private/source.7z" >/dev/null
+          image="$(find "$RUNNER_TEMP/private" -iname '*.img' -size 512M -type f | head -1)"
+          test -n "$image"
+          python tools/stage_private_cakewalk.py stage --disk "$image" --output "$RUNNER_TEMP/private/guest-staged.img" --cakewalk "$RUNNER_TEMP/private/synthetic-installer.zip" --report "$RUNNER_TEMP/private/stage.json"
+      - name: Boot real Windows 95 and require PE32 fixture execution evidence
+        run: |
+          set -euo pipefail
+          python tools/prove_win95_guest_installer.py --disk "$RUNNER_TEMP/private/guest-staged.img" --report "$RUNNER_TEMP/private/guest-run.json"
+      - name: Destroy all system and test media
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/private"
