@@ -39,11 +39,25 @@ jobs:
               z.writestr('Test/SETUPCW9.W02',b'a'*10000)
               z.writestr('Test/SETUPCW9.W03',b'b'*10000)
           PY
+      - name: Create synthetic driver fixture for offline FAT testing
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          folder=Path(os.environ['RUNNER_TEMP'])/'private'/'creative'
+          folder.mkdir()
+          names=('SB16AWE.INF','SBAWE.VXD','SBAWE32.DRV','AWEMAN.DLL','AWEMAN32.DLL',
+           'SYNTHGM.SBK','SB16.VXD','SB16SND.DRV','SBFM.DRV','CSPMAN.DLL','CIFMAN.DLL',
+           'CIFMAN.CRL','UIDLL16.DLL','WFM0200.ACV','WFM0200A.CSP','WFM0201.ACV',
+           'WFM0201A.CSP','WFM0202.ACV','WFM0202A.CSP','WFM0203.ACV','WFM0203A.CSP')
+          for name in names:(folder/name).write_bytes(b'SYNTHETIC-TEST-FIXTURE-DO-NOT-INSTALL')
+          PY
       - name: Stage copied Windows disk and inspect correct files
         run: |
           set -euo pipefail
           python tools/stage_private_cakewalk.py stage --disk "$WIN95_IMG" \
             --cakewalk "$RUNNER_TEMP/private/dummy-cakewalk.zip" \
+            --creative "$RUNNER_TEMP/private/creative" \
             --output "$RUNNER_TEMP/private/staged.img" \
             --report "$RUNNER_TEMP/private/staging.json"
           python - <<'PY'
@@ -60,6 +74,8 @@ jobs:
               assert fs.readbytes(STARTUP+'/125ACW9.BAT')==GUEST_BOOT
               assert fs.readbytes('AWEINST/SETUPCW9.EXE').startswith(b'MZWise')
               assert fs.readbytes('AWEINST/SETUPCW9.W02')==b'a'*10000
+              assert fs.readbytes('WINDOWS/INF/SB16AWE.INF').startswith(b'SYNTHETIC-TEST')
+              assert fs.readbytes('WINDOWS/SYSTEM/SBAWE.VXD').startswith(b'SYNTHETIC-TEST')
           with PyFatFS(str(original),offset=fat_offset(original),read_only=True) as fs:
               assert not fs.exists(STARTUP+'/125ACW9.BAT')
           print('PASS: Copy-on-write staging, 3 installer segments, Startup BAT, source unchanged.')
