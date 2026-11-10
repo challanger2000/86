@@ -1,19 +1,24 @@
-/* Win95-compatible synthetic 32-bit Windows GUI installer.
- * Never contains Cakewalk or Creative code. Only tests the /S guest execution path.
+/* Deliberately 1995-compatible 32-bit PE smoke executable.
+ * This does not include Cakewalk, vendor code or a CRT. Win95 import surface:
+ * KERNEL32.CreateFileA, WriteFile, CloseHandle, GetCommandLineA, ExitProcess.
  */
 #include <windows.h>
-#include <string.h>
-int WINAPI WinMain(HINSTANCE i,HINSTANCE prev,LPSTR command,int show) {
-    HANDLE f;
-    DWORD count=0;
-    HANDLE entry=CreateFileA("C:\\AWEINST\\CW9.ENTRY",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-    if (entry!=INVALID_HANDLE_VALUE) { WriteFile(entry,command,lstrlenA(command),&count,NULL); CloseHandle(entry); }
-    const char message[]="Wise fixture: 125A WIN95 EXECUTED WITH /S\r\n";
-    if (strstr(command,"/S")==NULL && strstr(command,"/s")==NULL) return 41;
-    f=CreateFileA("C:\\AWEINST\\CW9.PROOF",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-    if (f==INVALID_HANDLE_VALUE) return 42;
-    DWORD written=0;
-    BOOL ok=WriteFile(f,message,sizeof(message)-1,&written,NULL);
+__attribute__((used)) void guest_entry(void) {
+    static const char msg[]="Wise fixture: 125A WIN95 EXECUTED WITH /S\r\n";
+    const char *cmd=GetCommandLineA();
+    int haveSwitch=0;
+    for(const char *c=cmd; *c; ++c)
+        if(c[0]=='/' && (c[1]=='S'||c[1]=='s')) haveSwitch=1;
+    HANDLE marker=CreateFileA("C:\\AWEINST\\CW9.ENTRY",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
+    DWORD n=0;
+    if(marker!=INVALID_HANDLE_VALUE) {
+        WriteFile(marker,cmd,160,&n,0);
+        CloseHandle(marker);
+    }
+    if(!haveSwitch) ExitProcess(41);
+    HANDLE f=CreateFileA("C:\\AWEINST\\CW9.PROOF",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
+    if(f==INVALID_HANDLE_VALUE) ExitProcess(42);
+    BOOL ok=WriteFile(f,msg,sizeof(msg)-1,&n,0);
     CloseHandle(f);
-    return ok && written==sizeof(message)-1 ? 0 : 43;
+    ExitProcess(ok&&n==sizeof(msg)-1?0:43);
 }

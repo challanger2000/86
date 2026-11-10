@@ -43,7 +43,13 @@ def main():
             time.sleep(25)
             screenshot=a.report.parent/'win95-after-guest-setup.ppm'
             hmp(monitor,'screendump '+str(screenshot.resolve()))
-            time.sleep(25)
+            # The Welcome window obscures loader-error dialogs. Close it and
+            # capture the actual desktop and foreground error state.
+            hmp(monitor,'sendkey alt-f4')
+            time.sleep(3)
+            second=a.report.parent/'win95-after-close-welcome.ppm'
+            hmp(monitor,'screendump '+str(second.resolve()))
+            time.sleep(22)
         finally:
             if proc.poll() is None:
                 proc.terminate()
