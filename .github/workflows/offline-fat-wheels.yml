@@ -1,0 +1,27 @@
+name: Build offline Python FAT dependencies for private Win95 workbench
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/offline-fat-wheels.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch redistributable Python wheels
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p wheels
+          python -m pip download --only-binary=:all: -d wheels 'pyfatfs==1.1.0' 'setuptools<81'
+          ls -lh wheels
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 125A-pyfatfs-offline-wheels
+          path: wheels
+          if-no-files-found: error
+          retention-days: 7
