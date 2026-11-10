@@ -1,0 +1,19 @@
+name: ISO-Abbild fuer 86Box pruefen
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/New-InstallISO.ps1'
+      - 'tests/Test-InstallISO.ps1'
+      - '.github/workflows/verify-install-cd.yml'
+permissions:
+  contents: read
+jobs:
+  iso:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: IMAPI2 ISO erstellen und pruefen
+        shell: powershell
+        run: ./tests/Test-InstallISO.ps1
