@@ -1,14 +1,14 @@
 # Only checks starter script syntax & safety, not guest OS installation.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-foreach ($relative in @('scripts/Install-86Box.ps1', 'scripts/Backup-VM.ps1','scripts/Install-ROMs.ps1','scripts/Import-Win95VM.ps1','scripts/Pruefen.ps1')) {
+foreach ($relative in @('scripts/Install-86Box.ps1', 'scripts/Backup-VM.ps1','scripts/Install-ROMs.ps1','scripts/Import-Win95VM.ps1','scripts/Pruefen.ps1','scripts/Desktop-Symbol.ps1')) {
     $file = Join-Path $root $relative
     $tokens = $null
     $errors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
     if ($errors.Count -gt 0) { throw "PowerShell-Parserfehler in $relative : $($errors | Out-String)" }
 }
-foreach ($relative in @('README.md', '.gitignore', 'EINRICHTEN.bat', 'START.bat', 'DATEIEN.bat', 'BACKUP.bat','VM-EINRICHTEN.bat','PRUEFEN.bat','START-HERE.md','AGENTS.md')) {
+foreach ($relative in @('README.md', '.gitignore', 'EINRICHTEN.bat', 'START.bat', 'DATEIEN.bat', 'BACKUP.bat','VM-EINRICHTEN.bat','PRUEFEN.bat','DESKTOP-SYMBOL.bat','START-HERE.md','AGENTS.md')) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) {
         throw "Fehlende Datei: $relative"
     }

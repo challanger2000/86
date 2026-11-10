@@ -52,7 +52,7 @@ jobs:
       - name: Starter-ZIP ohne private Dateien packen
         shell: pwsh
         run: |
-          Compress-Archive -Path README.md,START-HERE.md,AGENTS.md,.gitattributes,.gitignore,START.bat,EINRICHTEN.bat,VM-EINRICHTEN.bat,PRUEFEN.bat,DATEIEN.bat,BACKUP.bat,scripts,tests -DestinationPath 86-starter.zip -Force
+          Compress-Archive -Path README.md,START-HERE.md,AGENTS.md,.gitattributes,.gitignore,START.bat,EINRICHTEN.bat,VM-EINRICHTEN.bat,PRUEFEN.bat,DATEIEN.bat,BACKUP.bat,DESKTOP-SYMBOL.bat,scripts,tests -DestinationPath 86-starter.zip -Force
       - name: ZIP als Actions-Artefakt bereitstellen
         uses: actions/upload-artifact@v4
         with:

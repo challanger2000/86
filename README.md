@@ -12,7 +12,8 @@
 4. \`PRUEFEN.bat\` zeigt, ob 86Box, BIOS, ROM und virtueller Datenträger vorhanden sind.
 5. \`START.bat\` öffnet 86Box mit dem im AWE-Projekt nachgewiesenen Pentium-133-/AWE64-Gold-Profil.
 6. \`DATEIEN.bat\` öffnet den Host-Ordner für SoundFonts, MIDI und Installationsprogramme. Um ihn im Gast sichtbar zu machen, in 86Box beim CD-ROM-Laufwerk eine **Folder**-CD mit dem Pfad \`AUSTAUSCH\` einlegen.
-7. Nach dem Herunterfahren von Windows 95 und **Schließen** von 86Box kannst du mit \`BACKUP.bat\` eine Sicherheitskopie erstellen.
+7. `DESKTOP-SYMBOL.bat` legt einen Desktop-Link **125A AWE64-PC** an. Danach genügt ein Doppelklick auf das Symbol.
+8. Nach dem Herunterfahren von Windows 95 und **Schließen** von 86Box kannst du mit \`BACKUP.bat\` eine Sicherheitskopie erstellen.
 
 ## Host und Gast
 
