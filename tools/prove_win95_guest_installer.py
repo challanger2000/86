@@ -40,7 +40,10 @@ def main():
             for key in ['ret','ret','esc','esc','ret','ctrl-esc','esc']:
                 hmp(monitor,'sendkey '+key)
                 time.sleep(2)
-            time.sleep(50)
+            time.sleep(25)
+            screenshot=a.report.parent/'win95-after-guest-setup.ppm'
+            hmp(monitor,'screendump '+str(screenshot.resolve()))
+            time.sleep(25)
         finally:
             if proc.poll() is None:
                 proc.terminate()
@@ -50,9 +53,11 @@ def main():
         attempted=fs.exists('AWEINST/CW9.TRIED')
         returned=fs.exists('AWEINST/CW9.EXIT')
         executed=fs.exists('AWEINST/CW9.PROOF')
+        entered=fs.exists('AWEINST/CW9.ENTRY')
+        entry=fs.readbytes('AWEINST/CW9.ENTRY').decode('cp1252','replace')[:240] if entered else ''
         value=fs.readbytes('AWEINST/CW9.PROOF').decode('ascii','replace') if executed else ''
     result={'real_windows95_boot':True,'guest_installer_attempted':attempted,
-            'guest_batch_returned':returned,'real_32bit_fixture_executed':executed,
+            'guest_batch_returned':returned,'real_32bit_fixture_executed':executed,'entry_marker':entered,'entry_command':entry,
             'fixture_captured_command_switch':('/S' in value),
             'test_pass':attempted and returned and executed and '/S' in value,
             'actual_cakewalk_used':False,'original_creative_driver_verified':False,

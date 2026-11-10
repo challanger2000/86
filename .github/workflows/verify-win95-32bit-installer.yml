@@ -50,6 +50,16 @@ jobs:
         run: |
           set -euo pipefail
           python tools/prove_win95_guest_installer.py --disk "$RUNNER_TEMP/private/guest-staged.img" --report "$RUNNER_TEMP/private/guest-run.json"
+      - name: Publish screenshot and test status only (no software binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Win95-Installer-Diagnostic-Screens
+          path: |
+            ${{ runner.temp }}/private/win95-after-guest-setup.ppm
+            ${{ runner.temp }}/private/guest-run.json
+          if-no-files-found: warn
+          retention-days: 3
       - name: Destroy all system and test media
         if: always()
         run: rm -rf "$RUNNER_TEMP/private"

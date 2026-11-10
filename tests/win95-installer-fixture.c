@@ -5,6 +5,9 @@
 #include <string.h>
 int WINAPI WinMain(HINSTANCE i,HINSTANCE prev,LPSTR command,int show) {
     HANDLE f;
+    DWORD count=0;
+    HANDLE entry=CreateFileA("C:\\AWEINST\\CW9.ENTRY",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    if (entry!=INVALID_HANDLE_VALUE) { WriteFile(entry,command,lstrlenA(command),&count,NULL); CloseHandle(entry); }
     const char message[]="Wise fixture: 125A WIN95 EXECUTED WITH /S\r\n";
     if (strstr(command,"/S")==NULL && strstr(command,"/s")==NULL) return 41;
     f=CreateFileA("C:\\AWEINST\\CW9.PROOF",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
