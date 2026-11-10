@@ -1,0 +1,91 @@
+name: Build and verify private Win95 Cakewalk stager
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/stage_private_cakewalk.py'
+      - '.github/workflows/verify-private-cakewalk-stager.yml'
+permissions:
+  contents: read
+jobs:
+  test-staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: FAT and 7z dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full
+          python -m pip install --disable-pip-version-check pyfatfs==1.1.0 setuptools==80.9.0
+      - name: Obtain existing Win95 installed test image privately
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/private"
+          curl --fail --location --retry 3 --max-time 240 'https://www.rekoba.de/~cs/v86/win95/Windows95b_p9x-0.9.91_512MB.img.7z' -o "$RUNNER_TEMP/private/source.7z"
+          7z x -y "-o$RUNNER_TEMP/private" "$RUNNER_TEMP/private/source.7z" >/dev/null
+          image="$(find "$RUNNER_TEMP/private" -iname '*.img' -size 512M -type f | head -1)"
+          test -n "$image"
+          echo "WIN95_IMG=$image" >> "$GITHUB_ENV"
+      - name: Generate original synthetic test installer, never actual Cakewalk media
+        run: |
+          python - <<'PY'
+          import os,zipfile
+          from pathlib import Path
+          path=Path(os.environ['RUNNER_TEMP'])/'private'/'dummy-cakewalk.zip'
+          with zipfile.ZipFile(path,'w',compression=zipfile.ZIP_DEFLATED) as z:
+              z.writestr('Test/SETUPCW9.EXE',b'MZ'+b'Wise'+b'x'*8000)
+              z.writestr('Test/SETUPCW9.W02',b'a'*10000)
+              z.writestr('Test/SETUPCW9.W03',b'b'*10000)
+          PY
+      - name: Stage copied Windows disk and inspect correct files
+        run: |
+          set -euo pipefail
+          python tools/stage_private_cakewalk.py stage --disk "$WIN95_IMG" \
+            --cakewalk "$RUNNER_TEMP/private/dummy-cakewalk.zip" \
+            --output "$RUNNER_TEMP/private/staged.img" \
+            --report "$RUNNER_TEMP/private/staging.json"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from pyfatfs.PyFatFS import PyFatFS
+          import sys
+          sys.path.insert(0,'tools')
+          from stage_private_cakewalk import fat_offset,GUEST_BOOT,STARTUP
+          original=Path(os.environ['WIN95_IMG'])
+          staged=Path(os.environ['RUNNER_TEMP'])/'private/staged.img'
+          assert staged.stat().st_size==original.stat().st_size==536870912
+          with PyFatFS(str(staged),offset=fat_offset(staged),read_only=True) as fs:
+              assert fs.readbytes(STARTUP+'/125ACW9.BAT')==GUEST_BOOT
+              assert fs.readbytes('AWEINST/SETUPCW9.EXE').startswith(b'MZWise')
+              assert fs.readbytes('AWEINST/SETUPCW9.W02')==b'a'*10000
+          with PyFatFS(str(original),offset=fat_offset(original),read_only=True) as fs:
+              assert not fs.exists(STARTUP+'/125ACW9.BAT')
+          print('PASS: Copy-on-write staging, 3 installer segments, Startup BAT, source unchanged.')
+          print('NOT VERIFIED: actual Cakewalk installation or Creative driver binding.')
+          PY
+      - name: Always destroy proprietary test media and copies
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/private"
+  build-windows-tool:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build portable staging tool, no media embedded
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pyfatfs==1.1.0 pyinstaller==6.16.0 setuptools==80.9.0
+          python -m PyInstaller --noconfirm --clean --onefile --name AWE95-Guest-Stage tools/stage_private_cakewalk.py
+          & '.\dist\AWE95-Guest-Stage.exe' --help
+          if ($LASTEXITCODE -ne 0) { throw 'Portable Windows tool failed basic launch test' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AWE95-Guest-Stage-Windows-x64
+          path: dist/AWE95-Guest-Stage.exe
+          if-no-files-found: error
+          retention-days: 14
