@@ -1,0 +1,42 @@
+name: ROM- und Emulator-Installation pruefen
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-bootstrap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 18
+    steps:
+      - name: Checkout scripts only
+        uses: actions/checkout@v4
+      - name: Download and validate official 86Box 6.0 binary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./scripts/Install-86Box.ps1
+          if (!(Test-Path '86Box/86Box.exe')) { throw 'Emulator nicht vorhanden' }
+          Write-Host 'PASS: 86Box Windows binary downloaded and SHA256 verified.'
+      - name: Download official pinned 86Box ROM set
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./scripts/Install-ROMs.ps1
+          if (!(Test-Path '86Box/roms/machines/p55t2p4/0207_j2.bin')) { throw 'Pentium BIOS fehlt' }
+          if (!(Test-Path '86Box/roms/sound/creative/awe32.raw')) { throw 'Creative AWE ROM fehlt' }
+          Write-Host 'PASS: 86Box official pinned ROM zip downloaded and extracted.'
+          Write-Host 'NOT TESTED: Windows 95 guest boot, original Creative drivers, Cakewalk, MIDI and audio.'
+      - name: Repeat installers must be idempotent
+        shell: pwsh
+        run: |
+          ./scripts/Install-86Box.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Installer rerun 86Box failed' }
+          ./scripts/Install-ROMs.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Installer rerun ROM failed' }
+          Write-Host 'PASS: Repeat setup with existing files completed without replacement.'
