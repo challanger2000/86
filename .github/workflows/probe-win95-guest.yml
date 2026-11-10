@@ -1,6 +1,11 @@
 name: Probe original Win95 guest startup (private, read-only)
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/probe_win95_guest.py'
+      - '.github/workflows/probe-win95-guest.yml'
 permissions:
   contents: read
 jobs:
