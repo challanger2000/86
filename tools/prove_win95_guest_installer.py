@@ -43,11 +43,11 @@ def main():
             time.sleep(25)
             screenshot=a.report.parent/'win95-after-guest-setup.ppm'
             hmp(monitor,'screendump '+str(screenshot.resolve()))
-            # The Welcome window obscures loader-error dialogs. Close it and
-            # capture the actual desktop and foreground error state.
-            hmp(monitor,'sendkey alt-f4')
+            # Alt-F4 on the background desktop can open the shutdown dialog.
+            # Switch toward the DOS test window instead, which remains open at PAUSE.
+            hmp(monitor,'sendkey alt-tab')
             time.sleep(3)
-            second=a.report.parent/'win95-after-close-welcome.ppm'
+            second=a.report.parent/'win95-after-alt-tab.ppm'
             hmp(monitor,'screendump '+str(second.resolve()))
             time.sleep(22)
         finally:
@@ -56,8 +56,10 @@ def main():
                 try:proc.wait(timeout=8)
                 except subprocess.TimeoutExpired:proc.kill();proc.wait(timeout=4)
     with PyFatFS(str(a.disk),offset=fat_offset(a.disk),read_only=True) as fs:
-        attempted=fs.exists('AWEINST/CW9.TRIED')
+        attempted=fs.exists('AWEINST/STARTUP.OK')
         returned=fs.exists('AWEINST/CW9.EXIT')
+        start_pass=fs.exists('AWEINST/START.OK')
+        direct_pass=fs.exists('AWEINST/DIRECT.OK')
         executed=fs.exists('AWEINST/CW9.PROOF')
         entered=fs.exists('AWEINST/CW9.ENTRY')
         entry=fs.readbytes('AWEINST/CW9.ENTRY').decode('cp1252','replace')[:240] if entered else ''
@@ -65,7 +67,8 @@ def main():
     result={'real_windows95_boot':True,'guest_installer_attempted':attempted,
             'guest_batch_returned':returned,'real_32bit_fixture_executed':executed,'entry_marker':entered,'entry_command':entry,
             'fixture_captured_command_switch':('/S' in value),
-            'test_pass':attempted and returned and executed and '/S' in value,
+            'start_wait_exec_success':start_pass,'direct_exec_success':direct_pass,
+            'test_pass':attempted and returned and executed and '/S' in value and (start_pass or direct_pass),
             'actual_cakewalk_used':False,'original_creative_driver_verified':False,
             'machine_not_exported':True}
     a.report.write_text(json.dumps(result,indent=2)+'\n',encoding='utf8')

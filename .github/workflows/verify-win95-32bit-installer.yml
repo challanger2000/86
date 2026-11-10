@@ -50,6 +50,29 @@ jobs:
           image="$(find "$RUNNER_TEMP/private" -iname '*.img' -size 512M -type f | head -1)"
           test -n "$image"
           python tools/stage_private_cakewalk.py stage --disk "$image" --output "$RUNNER_TEMP/private/guest-staged.img" --cakewalk "$RUNNER_TEMP/private/synthetic-installer.zip" --report "$RUNNER_TEMP/private/stage.json"
+          python - <<'PY'
+          import os,sys
+          from pathlib import Path
+          from pyfatfs.PyFatFS import PyFatFS
+          sys.path.insert(0,'tools')
+          from stage_private_cakewalk import fat_offset,STARTUP
+          disk=Path(os.environ['RUNNER_TEMP'])/'private'/'guest-staged.img'
+          batch=(b'@ECHO OFF\r\n'
+                 b'ECHO BAT-RAN> C:\\AWEINST\\STARTUP.OK\r\n'
+                 b'DIR C:\\AWEINST\\SETUPCW9.EXE\r\n'
+                 b'START /W C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9.PROOF ECHO START-PASS> C:\\AWEINST\\START.OK\r\n'
+                 b'ECHO TRY-DIRECT\r\n'
+                 b'C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9.PROOF ECHO DIRECT-PASS> C:\\AWEINST\\DIRECT.OK\r\n'
+                 b'ECHO BAT-FINISHED> C:\\AWEINST\\CW9.EXIT\r\n'
+                 b'PAUSE\r\n')
+          with PyFatFS(str(disk),offset=fat_offset(disk),read_only=False,preserve_case=False) as fs:
+              assert fs.exists('WINDOWS/COMMAND/START.EXE'), 'Win95 START.EXE missing'
+              fs.remove(STARTUP+'/125ACW9.BAT')
+              with fs.openbin(STARTUP+'/125ACW9.BAT','w') as f: f.write(batch)
+              assert fs.readbytes(STARTUP+'/125ACW9.BAT')==batch
+          PY
       - name: Boot real Windows 95 and require PE32 fixture execution evidence
         run: |
           set -euo pipefail
@@ -61,7 +84,7 @@ jobs:
           name: Win95-Installer-Diagnostic-Screens
           path: |
             ${{ runner.temp }}/private/win95-after-guest-setup.ppm
-            ${{ runner.temp }}/private/win95-after-close-welcome.ppm
+            ${{ runner.temp }}/private/win95-after-alt-tab.ppm
             ${{ runner.temp }}/private/guest-run.json
           if-no-files-found: warn
           retention-days: 3
