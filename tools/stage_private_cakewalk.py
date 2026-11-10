@@ -72,8 +72,13 @@ def stage(args):
      if not path.is_file():raise RuntimeError('Missing Creative driver '+name)
      data=path.read_bytes()
      if len(data)<8 or len(data)>500_000:raise RuntimeError('Bad driver size '+name)
-     if fs.exists('AWE32/'+name):continue
-     with fs.openbin('AWE32/'+name,'w') as f:f.write(data)
+     if not fs.exists('AWE32/'+name):
+      with fs.openbin('AWE32/'+name,'w') as f:f.write(data)
+     # Make original Win95 PnP driver search resolve this file locally.
+     # Mere file placement does not prove actual device binding.
+     system_path=('WINDOWS/INF/' if name.endswith('.INF') else 'WINDOWS/SYSTEM/')+name
+     if not fs.exists(system_path):
+      with fs.openbin(system_path,'w') as f:f.write(data)
    with fs.openbin(STARTUP+'/125ACW9.BAT','w') as f:f.write(GUEST_BOOT)
    if fs.readbytes(STARTUP+'/125ACW9.BAT')!=GUEST_BOOT:raise RuntimeError('Startup batch did not roundtrip')
   partial.rename(args.output)
