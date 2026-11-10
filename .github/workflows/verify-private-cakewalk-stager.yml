@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tools/stage_private_cakewalk.py'
+      - 'tools/verify_private_vm.py'
       - '.github/workflows/verify-private-cakewalk-stager.yml'
 permissions:
   contents: read
@@ -81,6 +82,42 @@ jobs:
           print('PASS: Copy-on-write staging, 3 installer segments, Startup BAT, source unchanged.')
           print('NOT VERIFIED: actual Cakewalk installation or Creative driver binding.')
           PY
+      - name: Adversarial postboot inspection (staging and fake EXIT must not pass)
+        run: |
+          python - <<'PY'
+          import os,sys,json
+          from pathlib import Path
+          from pyfatfs.PyFatFS import PyFatFS
+          sys.path.insert(0,'tools')
+          from stage_private_cakewalk import fat_offset
+          from verify_private_vm import inspect
+          disk=Path(os.environ['RUNNER_TEMP'])/'private/staged.img'
+          first=inspect(disk)
+          assert first['cakewalk_installer_staged']
+          assert not first['cakewalk_setup_attempted']
+          assert not first['cakewalk_program_files_present']
+          assert not first['inspection_pass']
+          assert not first['ready_to_release']
+          with PyFatFS(str(disk),offset=fat_offset(disk),read_only=False,preserve_case=False) as fs:
+              with fs.openbin('AWEINST/CW9.TRIED','w') as f: f.write(b'ATTEMPT')
+              with fs.openbin('AWEINST/CW9.EXIT','w') as f: f.write(b'RETURNED')
+          second=inspect(disk)
+          assert second['cakewalk_setup_attempted'] and second['cakewalk_setup_batch_returned']
+          assert not second['cakewalk_program_files_present']
+          assert not second['inspection_pass']
+          with PyFatFS(str(disk),offset=fat_offset(disk),read_only=False,preserve_case=False) as fs:
+              fs.makedirs('CWPATEST',recreate=True)
+              with fs.openbin('CWPATEST/CWPA.EXE','w') as f:
+                  f.write(b'MZ'+b'FAKE-PROGRAM-PLACEHOLDER'+b'X'*120000)
+          third=inspect(disk)
+          assert third['cakewalk_program_files_present']
+          assert third['inspection_pass']
+          assert not third['ready_to_release']
+          assert not third['midi_output_verified']
+          assert not third['cakewalk_executed_successfully']
+          print('PASS: Staging is not installation; fake EXIT never passes.')
+          print('PASS: Program-file inventory is independent of process/audio release proof.')
+          PY
       - name: Always destroy proprietary test media and copies
         if: always()
         run: rm -rf "$RUNNER_TEMP/private"
@@ -97,11 +134,16 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pyfatfs==1.1.0 pyinstaller==6.16.0 setuptools==80.9.0
           python -m PyInstaller --noconfirm --clean --onefile --name AWE95-Guest-Stage tools/stage_private_cakewalk.py
+          python -m PyInstaller --noconfirm --clean --onefile --name AWE95-Guest-Verify --paths tools tools/verify_private_vm.py
+          & '.\dist\AWE95-Guest-Verify.exe' --help
+          if ($LASTEXITCODE -ne 0) { throw 'Private verifier EXE failed basic launch test' }
           & '.\dist\AWE95-Guest-Stage.exe' --help
           if ($LASTEXITCODE -ne 0) { throw 'Portable Windows tool failed basic launch test' }
       - uses: actions/upload-artifact@v4
         with:
           name: AWE95-Guest-Stage-Windows-x64
-          path: dist/AWE95-Guest-Stage.exe
+          path: |
+            dist/AWE95-Guest-Stage.exe
+            dist/AWE95-Guest-Verify.exe
           if-no-files-found: error
           retention-days: 14
