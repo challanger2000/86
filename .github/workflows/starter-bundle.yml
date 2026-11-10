@@ -1,0 +1,28 @@
+name: Starter-Paket (ohne Gast-Software)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Syntax und Sicherheitsregeln pruefen
+        shell: pwsh
+        run: ./tests/SelfTest.ps1
+      - name: BAT-Starter ohne private Dateien packen
+        shell: pwsh
+        run: |
+          Compress-Archive -Path README.md,.gitignore,START.bat,EINRICHTEN.bat,DATEIEN.bat,BACKUP.bat,scripts,tests -DestinationPath 86-starter.zip -Force
+      - name: ZIP als Actions-Artefakt bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: 86-Starter-ohne-Systemdateien
+          path: 86-starter.zip
+          retention-days: 7
