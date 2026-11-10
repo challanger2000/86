@@ -53,6 +53,4 @@ try {
 } catch {
   Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
   throw
-} finally {
-  if($pointer -ne [IntPtr]::Zero){[Runtime.InteropServices.Marshal]::FreeCoTaskMem($pointer)}
 }
