@@ -66,16 +66,24 @@ def main():
         attempted=fs.exists('AWEINST/STARTUP.OK')
         returned=fs.exists('AWEINST/CW9.EXIT')
         start_pass=fs.exists('AWEINST/START.OK')
-        direct_pass=fs.exists('AWEINST/DIRECT.OK')
-        executed=fs.exists('AWEINST/CW9PRF.TXT')
-        entered=fs.exists('AWEINST/CW9ENT.TXT')
-        entry=fs.readbytes('AWEINST/CW9ENT.TXT').decode('cp1252','replace')[:240] if entered else ''
-        value=fs.readbytes('AWEINST/CW9PRF.TXT').decode('ascii','replace') if executed else ''
+        positive_proof=fs.exists('AWEINST/GOODPRF.TXT')
+        positive_cmd_exists=fs.exists('AWEINST/GOODCMD.TXT')
+        positive_cmd=fs.readbytes('AWEINST/GOODCMD.TXT').decode('cp1252','replace')[:240] if positive_cmd_exists else ''
+        positive_payload=fs.readbytes('AWEINST/GOODPRF.TXT').decode('ascii','replace')[:180] if positive_proof else ''
+        negative_pass=fs.exists('AWEINST/NEG.OK')
+        negative_cmd_exists=fs.exists('AWEINST/CW9ENT.TXT')
+        negative_cmd=fs.readbytes('AWEINST/CW9ENT.TXT').decode('cp1252','replace')[:240] if negative_cmd_exists else ''
+        negative_proof_absent=not fs.exists('AWEINST/CW9PRF.TXT')
     result={'real_windows95_boot':True,'guest_installer_attempted':attempted,
-            'guest_batch_returned':returned,'real_32bit_fixture_executed':executed,'entry_marker':entered,'entry_command':entry,
-            'fixture_captured_command_switch':('/S' in value),
-            'start_wait_exec_success':start_pass,'direct_exec_success':direct_pass,
-            'test_pass':attempted and returned and executed and '/S' in value and (start_pass or direct_pass),
+            'guest_batch_returned':returned,
+            'positive_process_verified':positive_proof and '125A WIN95 EXECUTED' in positive_payload,
+            'positive_command_switch_verified':'/S' in positive_cmd,
+            'start_wait_exec_success':start_pass,
+            'negative_command_switch_verified':'/Z' in negative_cmd,
+            'negative_proof_absent':negative_proof_absent,'negative_gate_pass':negative_pass,
+            'test_pass':bool(attempted and returned and start_pass and
+                              positive_proof and '125A WIN95 EXECUTED' in positive_payload and
+                              '/S' in positive_cmd and negative_pass and negative_proof_absent and '/Z' in negative_cmd),
             'actual_cakewalk_used':False,'original_creative_driver_verified':False,
             'machine_not_exported':True}
     a.report.write_text(json.dumps(result,indent=2)+'\n',encoding='utf8')

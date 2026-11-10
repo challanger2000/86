@@ -62,9 +62,13 @@ jobs:
                  b'DIR C:\\AWEINST\\SETUPCW9.EXE\r\n'
                  b'START /W C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
                  b'IF EXIST C:\\AWEINST\\CW9PRF.TXT ECHO START-PASS> C:\\AWEINST\\START.OK\r\n'
-                 b'ECHO TRY-DIRECT\r\n'
-                 b'C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
-                 b'IF EXIST C:\\AWEINST\\CW9PRF.TXT ECHO DIRECT-PASS> C:\\AWEINST\\DIRECT.OK\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9PRF.TXT COPY C:\\AWEINST\\CW9PRF.TXT C:\\AWEINST\\GOODPRF.TXT >NUL\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9ENT.TXT COPY C:\\AWEINST\\CW9ENT.TXT C:\\AWEINST\\GOODCMD.TXT >NUL\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9PRF.TXT DEL C:\\AWEINST\\CW9PRF.TXT\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9ENT.TXT DEL C:\\AWEINST\\CW9ENT.TXT\r\n'
+                 b'ECHO TRY-NEGATIVE\r\n'
+                 b'START /W C:\\AWEINST\\SETUPCW9.EXE /Z\r\n'
+                 b'IF NOT EXIST C:\\AWEINST\\CW9PRF.TXT ECHO NEG-PASS> C:\\AWEINST\\NEG.OK\r\n'
                  b'ECHO BAT-FINISHED> C:\\AWEINST\\CW9.EXIT\r\n'
                  b'PAUSE\r\n')
           with PyFatFS(str(disk),offset=fat_offset(disk),read_only=False,preserve_case=False) as fs:
