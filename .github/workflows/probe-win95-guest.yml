@@ -1,0 +1,28 @@
+name: Probe original Win95 guest startup (private, read-only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FAT reader, 7z
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full
+          python -m pip install --disable-pip-version-check pyfatfs==1.1.0 setuptools==80.9.0
+      - name: Obtain disposable installed Win95 test disk
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/private"
+          curl --fail --location --retry 3 --max-time 240 'https://www.rekoba.de/~cs/v86/win95/Windows95b_p9x-0.9.91_512MB.img.7z' -o "$RUNNER_TEMP/private/source.7z"
+          7z x -y "-o$RUNNER_TEMP/private" "$RUNNER_TEMP/private/source.7z" >/dev/null
+          image="$(find "$RUNNER_TEMP/private" -iname '*.img' -size 512M -type f | head -1)"
+          test -n "$image"
+          python tools/probe_win95_guest.py --disk "$image" | tee "$RUNNER_TEMP/startup-probe.txt"
+      - name: Remove temporary proprietary system media
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/private"
