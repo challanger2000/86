@@ -1,32 +1,24 @@
 @echo off
 setlocal EnableExtensions
 set "ROOT=%~dp0"
-set "EMU=%ROOT%86Box\86Box.exe"
-set "VM=%ROOT%VM"
-if not exist "%EMU%" (
-  echo.
-  echo 86Box wurde noch nicht eingerichtet.
-  echo Bitte zuerst EINRICHTEN.bat doppelklicken.
-  echo.
-  pause
-  exit /b 2
-)
-if not exist "%VM%\86box.cfg" (
-  echo.
-  echo Die Windows-95-Maschine fehlt noch.
-  echo Hier wird die gepruefte lokale VM erwartet:
-  echo %VM%\86box.cfg
-  echo Bitte zuerst die VM mit ihrer Festplatte einrichten bzw. uebernehmen.
-  echo Ohne diese Dateien ist Windows 95 nicht installiert.
-  echo.
-  pause
-  exit /b 3
-)
+if not exist "%ROOT%86Box\86Box.exe" goto :missing
+if not exist "%ROOT%86Box\roms\machines\p55t2p4\0207_j2.bin" goto :missing
+if not exist "%ROOT%86Box\roms\sound\creative\awe32.raw" goto :missing
+if not exist "%ROOT%VM\86box.cfg" goto :missing
+if not exist "%ROOT%VM\win95.img" goto :missing
 cd /d "%ROOT%86Box"
-start "" /D "%ROOT%86Box" "%EMU%" --vmpath "%VM%"
+start "" /D "%ROOT%86Box" "%ROOT%86Box\86Box.exe" --vmpath "%ROOT%VM" --rompath "%ROOT%86Box\roms"
 if errorlevel 1 (
-  echo Start von 86Box fehlgeschlagen.
+  echo 86Box konnte nicht gestartet werden.
   pause
   exit /b 4
 )
 exit /b 0
+:missing
+echo.
+echo Noch nicht startbereit.
+echo Bitte zuerst EINRICHTEN.bat und VM-EINRICHTEN.bat ausfuehren.
+echo Danach zeigt PRUEFEN.bat, welche Datei fehlt.
+echo.
+pause
+exit /b 3

@@ -1,37 +1,36 @@
-# 86 — lokaler Retro-PC
+# 86 – privater Windows-95-AWE64-PC
 
-Dieses Repository enthält ausschließlich frei verteilbare Start-, Einrichtungs- und Prüfscripte für einen **privaten** Windows-95-PC in 86Box.
+**Ziel:** Du klickst später nur auf \`START.bat\` und kannst eine historische Windows-95-Musikmaschine mit Creative AWE64 Gold und Cakewalk Pro Audio 9 benutzen.
 
-**Status:** Grundgerüst. Noch **keine** fertig installierte Windows-95-/Creative-/Cakewalk-Maschine. `START.bat` startet erst, wenn eine geprüfte VM-Konfiguration mit Systemabbild lokal bereitliegt.
+**Ehrlicher Status:** Die Startumgebung, Emulator-/ROM-Downloads und ein Import-Assistent sind vorhanden. **Windows 95, der originale Creative-Treiber und Cakewalk sind noch nicht installiert**. Dafür braucht es deine eigene installierte Win95-Festplatte und passende, rechtmäßig nutzbare Software.
 
-## Für Windows 11
+## Schritt für Schritt (Windows 11)
 
-1. Repository als ZIP herunterladen und entpacken.
-2. `EINRICHTEN.bat` doppelklicken: lädt 86Box 6.0 von der offiziellen Projektfreigabe, prüft SHA-256, richtet Ordner ein.
-3. Die eigene, rechtmäßig nutzbare Windows-95-Installation **oder** eine bereits funktionierende lokale 86Box-VM nach `VM` übernehmen. `VM\86box.cfg` und die referenzierten Plattenabbilder müssen dort gültig sein. ROM-Dateien und Creative-Treiber müssen lokal passend zur Maschine vorhanden sein.
-4. `START.bat` doppelklicken.
-5. `DATEIEN.bat` öffnet den Host-Austauschordner. In 86Box kann man ihn über das CD-ROM-Symbol als **Folder** einlegen (im Gast nur lesbar).
-6. Nach dem ordnungsgemäßen Herunterfahren von Windows 95 und dem Schließen von 86Box erstellt `BACKUP.bat` eine Kopie.
+1. [Das aktuelle Actions-Paket herunterladen](https://github.com/challanger2000/86/actions) – im letzten erfolgreichen Lauf heißt das Artefakt \`86-Starter-ohne-Systemdateien\`. ZIP entpacken.
+2. \`EINRICHTEN.bat\` doppelklicken. Das lädt den offiziellen 86Box-Emulator 6.0 sowie den zugehörigen ROM-Satz lokal herunter. Je nach ROM-Archiv kann das länger dauern.
+3. \`VM-EINRICHTEN.bat\` doppelklicken. Dort deine **bereits installierte** private Windows-95-Festplatte im 512-MiB-Raw-Format \`.img\` auswählen. Eine Windows-95-CD/ISO allein genügt nicht: Dann muss Windows erst in einer virtuellen Maschine installiert werden.
+4. \`PRUEFEN.bat\` zeigt, ob 86Box, BIOS, ROM und virtueller Datenträger vorhanden sind.
+5. \`START.bat\` öffnet 86Box mit dem im AWE-Projekt nachgewiesenen Pentium-133-/AWE64-Gold-Profil.
+6. \`DATEIEN.bat\` öffnet den Host-Ordner für SoundFonts, MIDI und Installationsprogramme. Um ihn im Gast sichtbar zu machen, in 86Box beim CD-ROM-Laufwerk eine **Folder**-CD mit dem Pfad \`AUSTAUSCH\` einlegen.
+7. Nach dem Herunterfahren von Windows 95 und **Schließen** von 86Box kannst du mit \`BACKUP.bat\` eine Sicherheitskopie erstellen.
 
-## Zielkonfiguration
+## Host und Gast
 
-Windows 95 (identische Ausgabe wie die Entwicklungstests), passende original Creative AWE64 Gold Treiber, AWE64 Gold / EMU8000 mit abgestimmter Wave-ROM und Sample-RAM, SoundFont-Control-Panel und Cakewalk Pro Audio 9 **mit eigener Lizenz/Installationsquelle**. Diese Komponenten sind **nicht** Bestandteil des Pakets. Der ursprüngliche Entwicklungs-Test-PC wird nicht verändert.
+- Die Maus ist im P48-Referenzprofil eine PS/2-Maus. Eine tatsächlich funktionierende Maus im Windows-95-Gast muss beim ersten lokalen Start noch geprüft werden.
+- AWE64 Gold: \`sbawe64_gold\` mit 28 MiB Sample-RAM. Das ist nur die emulierte Hardware. Der **passende Original-Creative-Treiber** und das **AWE Control Panel** müssen im Gast vorhanden sein bzw. installiert werden.
+- Cakewalk Pro Audio 9: nur aus eigener vorhandener Installationsquelle; im Gast installieren und Creative AWE MIDI Synth auswählen.
+- \`AUSTAUSCH\` ist als virtuelle CD **nur lesbar**. Ein bidirektionaler Austausch ohne Medienwechsel ist derzeit **noch nicht implementiert**. Die VM selbst sollte nicht als gleichzeitig benutzbarer Host-Ordner verwendet werden.
+- Win95-Netzwerk ist zunächst **aus**, damit veraltete Netzwerkdienste nicht freigegeben werden.
+- Für wirklich vergleichbare Messungen muss die gesamte Treiber-/ROM-/86Box-Konfiguration mit der aktuellen Entwicklungstest-Referenz abgeglichen werden.
 
-## Lokale Ordner
+## Lokal vorhandene Ordner
 
-- `86Box/` – Emulator (wird heruntergeladen)
-- `VM/` – private VM-Konfiguration und Plattenabbilder
-- `AUSTAUSCH/` – vom Gast als CD lesbare Dateien (SF2, MIDI, Installationsdateien)
-- `BACKUPS/` – Sicherungen nach Ausschalten der VM
+\`86Box/\` (Programm und ROMs), \`VM/\` (private virtuelle Maschine), \`AUSTAUSCH/\` (Host→Gast), \`BACKUPS/\` (Sicherungen). Alle sind vom Git-Upload ausgeschlossen.
 
-Alle vier Ordner sind in `.gitignore` ausgeschlossen. **Niemals** Windows-, ROM-, Cakewalk-, Treiber-, private SF2- oder VM-Abbilddateien committen oder in Actions-Artefakte hochladen.
+## Nicht enthalten
 
-## Grenzen
+Windows 95, Creative-Originaltreiber, Cakewalk Pro Audio 9 und private SF2-Bänke. Auch die GitHub-Action erzeugt **keine** fertig installierte Windows-95-Maschine und testet keine Audioausgabe. Sie prüft lediglich die Starter und das Konfigurationsprofil.
 
-- Eine öffentlich lesbare GitHub-Actions-Ausführung ist kein privater Ort.
-- Der Download des Emulators ist automatisiert; die Windows-Installation und die exakte AWE-Treiberkonfiguration noch nicht. Ein `START.bat` ohne vorhandene VM bricht mit verständlicher Meldung ab.
-- Ein gemounteter Host-Ordner ist im Windows-95-Gast eine **schreibgeschützte CD**, kein bidirektionaler Netzwerkordner. Ein sicherer Rückweg für Gastdateien muss separat eingerichtet werden.
-- Eine 86Box-VM kann nicht gleichzeitig von zwei 86Box-Prozessen oder Host-Datenträgerwerkzeugen schreibend verwendet werden.
-- Audioidentität zu Entwicklungsläufen setzt identische Versionen und Konfiguration voraus und muss erst durch einen Vergleich bestätigt werden.
+Die AWE-Entwicklungsumgebung unter \`challanger2000/125A-AWE-Synthesizer\` bleibt unverändert. Grundlage sind dort \`tools/p47_86box_emu8k_smoke.py\` und \`tools/p48_86box_boot_win95.py\` (Stand des P218-Zweiges).
 
-Offizielle Dokumentation: https://86box.readthedocs.io/en/latest/ | Download: https://github.com/86Box/86Box/releases/tag/v6.0
+Offizielle 86Box-Dokumentation: https://86box.readthedocs.io/ · ROMs: https://github.com/86Box/roms

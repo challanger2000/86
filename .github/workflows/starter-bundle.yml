@@ -9,17 +9,50 @@ permissions:
 jobs:
   package:
     runs-on: windows-2022
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Syntax und Sicherheitsregeln pruefen
         shell: pwsh
         run: ./tests/SelfTest.ps1
-      - name: BAT-Starter ohne private Dateien packen
+      - name: Konfiguration mit kunstlichem Disk-Container pruefen
         shell: pwsh
         run: |
-          Compress-Archive -Path README.md,.gitignore,START.bat,EINRICHTEN.bat,DATEIEN.bat,BACKUP.bat,scripts,tests -DestinationPath 86-starter.zip -Force
+          $ErrorActionPreference='Stop'
+          $tempRoot=Join-Path $env:RUNNER_TEMP 'vm-generator-test'
+          New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+          $disk=Join-Path $env:RUNNER_TEMP 'synthetic-empty-disk.img'
+          $stream=[IO.File]::Open($disk,[IO.FileMode]::CreateNew)
+          try { $stream.SetLength(536870912) } finally { $stream.Close() }
+          ./scripts/Import-Win95VM.ps1 -DiskImage $disk -DestinationRoot $tempRoot
+          if (!(Test-Path (Join-Path $tempRoot 'VM\86box.cfg'))) { throw 'Kein Konfigurationsfile erstellt' }
+          $cfg=Get-Content (Join-Path $tempRoot 'VM\86box.cfg') -Raw
+          foreach($required in @('machine = p55t2p4','sndcard = sbawe64_gold','onboard_ram = 28672','mouse_type = ps2','hdd_01_ide_channel = 0:0','cdrom_01_parameters = 1, atapi')) {
+            if(!$cfg.Contains($required)) { throw "Profil falsch: $required" }
+          }
+          $rejected = $false
+          try {
+            ./scripts/Import-Win95VM.ps1 -DiskImage $disk -DestinationRoot $tempRoot | Out-Null
+          } catch {
+            $rejected = $true
+          }
+          if (!$rejected) { throw 'Duplikatimport wurde nicht abgewehrt.' }
+          $bad=Join-Path $env:RUNNER_TEMP 'invalid-small.img'
+          [IO.File]::WriteAllBytes($bad, [byte[]](0,1,2))
+          $rejectedBad=$false
+          try {
+            ./scripts/Import-Win95VM.ps1 -DiskImage $bad -DestinationRoot (Join-Path $env:RUNNER_TEMP 'vm-bad') | Out-Null
+          } catch {
+            $rejectedBad=$true
+          }
+          if (!$rejectedBad) { throw 'Zu kleines Image wurde nicht abgewehrt.' }
+          Write-Host 'PASS: Konfigurationsgenerator, 512 MiB Testcontainer, falsche Groesse und Ueberschreibschutz.'
+          Write-Host 'NOT TESTED: Gastsystem, Creative-Originaltreiber, Cakewalk, MIDI und Audio.'
+      - name: Starter-ZIP ohne private Dateien packen
+        shell: pwsh
+        run: |
+          Compress-Archive -Path README.md,START-HERE.md,AGENTS.md,.gitattributes,.gitignore,START.bat,EINRICHTEN.bat,VM-EINRICHTEN.bat,PRUEFEN.bat,DATEIEN.bat,BACKUP.bat,scripts,tests -DestinationPath 86-starter.zip -Force
       - name: ZIP als Actions-Artefakt bereitstellen
         uses: actions/upload-artifact@v4
         with:
