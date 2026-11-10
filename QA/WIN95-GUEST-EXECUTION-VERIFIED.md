@@ -35,3 +35,19 @@ Das synthetische `PASS` darf **niemals** als Cakewalk-/Treiber-/VM-Releasefreiga
 ## Adversarialer Folgetest (eingeführt nach dem ersten PASS)
 
 Im Folgetest wird der ursprüngliche Erfolg nach `START /W /S` separat gesichert, der Erfolgsmelder gelöscht und dann derselbe PE32-Testinstaller absichtlich mit `/Z` aufgerufen. Dieser negative Kontrollfall darf keinen neuen Erfolgsmarker erzeugen. Das frühere `PASS` belegt nur den `/S`-Start, **nicht** die neu hinzugefügte Negativprüfung; deren eigener CI-Lauf ist separat zu betrachten.
+
+## Abgeschlossene Negativkontrolle – 2026-11-10
+
+[CI #42776084232](https://github.com/challanger2000/86/actions/runs/42776084232): **SUCCESS**.
+
+Tatsächlich im Win95-Gast ausgeführt: `START /W SETUPCW9.EXE /S`, dessen Erfolg getrennt gesichert, Erfolgsmelder gelöscht, danach `START /W SETUPCW9.EXE /Z` als absichtlich ungültiger Parameter. Ergebnis aus dem Gast:
+
+- `positive_process_verified = true`
+- `positive_command_switch_verified = true`
+- `start_wait_exec_success = true`
+- `negative_command_switch_verified = true`
+- `negative_proof_absent = true`
+- `negative_gate_pass = true`
+- `test_pass = true`
+
+Das beweist die **generische Win95-PE32-Programmstartkette samt wirksamer Negativkontrolle**, nicht die Cakewalk-Installation oder den Creative-AWE64-Gold-Betrieb. Die privaten Binaries und OS-Platten bleiben außerhalb aller veröffentlichten Artefakte.
