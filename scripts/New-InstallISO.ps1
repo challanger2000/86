@@ -9,26 +9,37 @@ $targetDir=[IO.Path]::GetDirectoryName($Destination)
 if(!(Test-Path -LiteralPath $targetDir)){[void][IO.Directory]::CreateDirectory($targetDir)}
 $tmp=$Destination+'.partial'
 if(Test-Path -LiteralPath $tmp){throw 'Unvollstaendige ISO-Zwischendatei vorhanden.'}
-$out=$null
-$pointer=[IntPtr]::Zero
+Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+public static class AWE86_ImapiWriter {
+  public static void Save(object comObject, string fileName) {
+    IStream input=(IStream)comObject;
+    using(FileStream output=new FileStream(fileName,FileMode.CreateNew,FileAccess.Write,FileShare.None)) {
+      byte[] buffer=new byte[65536];
+      IntPtr readCount=Marshal.AllocCoTaskMem(4);
+      try {
+        while(true) {
+          Marshal.WriteInt32(readCount,0);
+          input.Read(buffer,buffer.Length,readCount);
+          int count=Marshal.ReadInt32(readCount);
+          if(count<=0) break;
+          output.Write(buffer,0,count);
+        }
+      } finally { Marshal.FreeCoTaskMem(readCount); }
+    }
+  }
+}
+'@
 try {
   $fsi=New-Object -ComObject IMAPI2FS.MsftFileSystemImage
   $fsi.FileSystemsToCreate=3
   $fsi.VolumeName='125A_INSTALL'
   $fsi.Root.AddTree($SourceDirectory,$false)
   $image=$fsi.CreateResultImage()
-  $istream=[System.Runtime.InteropServices.ComTypes.IStream]$image.ImageStream
-  $out=[IO.File]::Open($tmp,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
-  $buf=New-Object byte[] (64*1024)
-  $pointer=[Runtime.InteropServices.Marshal]::AllocCoTaskMem(4)
-  while($true){
-    [Runtime.InteropServices.Marshal]::WriteInt32($pointer,0)
-    $istream.Read($buf,$buf.Length,$pointer)
-    $count=[Runtime.InteropServices.Marshal]::ReadInt32($pointer)
-    if($count -le 0){break}
-    $out.Write($buf,0,$count)
-  }
-  $out.Dispose();$out=$null
+  [AWE86_ImapiWriter]::Save($image.ImageStream,$tmp)
   $f=[IO.File]::OpenRead($tmp)
   try {
     if($f.Length -lt 34816){throw 'ISO ist zu klein.'}
@@ -40,7 +51,6 @@ try {
   Move-Item -LiteralPath $tmp -Destination $Destination
   Write-Host "Installations-CD erstellt: $Destination"
 } catch {
-  if($out){$out.Dispose()}
   Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
   throw
 } finally {
