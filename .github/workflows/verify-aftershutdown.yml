@@ -32,3 +32,4 @@ jobs:
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
           if ($LASTEXITCODE -ne 2) { throw "Expected fail-closed code 2, got $LASTEXITCODE" }
           Write-Host 'PASS: Missing disk/inspector does not imply successful installation.'
+          exit 0
