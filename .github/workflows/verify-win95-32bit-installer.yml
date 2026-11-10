@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/private"
-          i686-w64-mingw32-gcc -Os -s -fno-builtin -fno-stack-protector -nostdlib \
+          i686-w64-mingw32-gcc -Os -s -march=i586 -mtune=pentium -mno-sse -mno-sse2 -fno-builtin -fno-stack-protector -nostdlib \
             -Wl,-e,_guest_entry -Wl,--subsystem,windows:4.0 \
             -Wl,--major-os-version,4 -Wl,--minor-os-version,0 \
             -o "$RUNNER_TEMP/private/SETUPCW9.EXE" tests/win95-installer-fixture.c -lkernel32
@@ -61,10 +61,10 @@ jobs:
                  b'ECHO BAT-RAN> C:\\AWEINST\\STARTUP.OK\r\n'
                  b'DIR C:\\AWEINST\\SETUPCW9.EXE\r\n'
                  b'START /W C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
-                 b'IF EXIST C:\\AWEINST\\CW9.PROOF ECHO START-PASS> C:\\AWEINST\\START.OK\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9PRF.TXT ECHO START-PASS> C:\\AWEINST\\START.OK\r\n'
                  b'ECHO TRY-DIRECT\r\n'
                  b'C:\\AWEINST\\SETUPCW9.EXE /S\r\n'
-                 b'IF EXIST C:\\AWEINST\\CW9.PROOF ECHO DIRECT-PASS> C:\\AWEINST\\DIRECT.OK\r\n'
+                 b'IF EXIST C:\\AWEINST\\CW9PRF.TXT ECHO DIRECT-PASS> C:\\AWEINST\\DIRECT.OK\r\n'
                  b'ECHO BAT-FINISHED> C:\\AWEINST\\CW9.EXIT\r\n'
                  b'PAUSE\r\n')
           with PyFatFS(str(disk),offset=fat_offset(disk),read_only=False,preserve_case=False) as fs:
@@ -85,6 +85,7 @@ jobs:
           path: |
             ${{ runner.temp }}/private/win95-after-guest-setup.ppm
             ${{ runner.temp }}/private/win95-after-alt-tab.ppm
+            ${{ runner.temp }}/private/win95-crash-details.ppm
             ${{ runner.temp }}/private/guest-run.json
           if-no-files-found: warn
           retention-days: 3

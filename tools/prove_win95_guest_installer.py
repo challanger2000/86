@@ -49,7 +49,14 @@ def main():
             time.sleep(3)
             second=a.report.parent/'win95-after-alt-tab.ppm'
             hmp(monitor,'screendump '+str(second.resolve()))
-            time.sleep(22)
+            # If a Win95 crash dialogue is focused, open Details.
+            hmp(monitor,'sendkey tab')
+            time.sleep(.5)
+            hmp(monitor,'sendkey ret')
+            time.sleep(2)
+            details=a.report.parent/'win95-crash-details.ppm'
+            hmp(monitor,'screendump '+str(details.resolve()))
+            time.sleep(19)
         finally:
             if proc.poll() is None:
                 proc.terminate()
@@ -60,10 +67,10 @@ def main():
         returned=fs.exists('AWEINST/CW9.EXIT')
         start_pass=fs.exists('AWEINST/START.OK')
         direct_pass=fs.exists('AWEINST/DIRECT.OK')
-        executed=fs.exists('AWEINST/CW9.PROOF')
-        entered=fs.exists('AWEINST/CW9.ENTRY')
-        entry=fs.readbytes('AWEINST/CW9.ENTRY').decode('cp1252','replace')[:240] if entered else ''
-        value=fs.readbytes('AWEINST/CW9.PROOF').decode('ascii','replace') if executed else ''
+        executed=fs.exists('AWEINST/CW9PRF.TXT')
+        entered=fs.exists('AWEINST/CW9ENT.TXT')
+        entry=fs.readbytes('AWEINST/CW9ENT.TXT').decode('cp1252','replace')[:240] if entered else ''
+        value=fs.readbytes('AWEINST/CW9PRF.TXT').decode('ascii','replace') if executed else ''
     result={'real_windows95_boot':True,'guest_installer_attempted':attempted,
             'guest_batch_returned':returned,'real_32bit_fixture_executed':executed,'entry_marker':entered,'entry_command':entry,
             'fixture_captured_command_switch':('/S' in value),

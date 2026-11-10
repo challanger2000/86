@@ -9,14 +9,16 @@ __attribute__((used)) void guest_entry(void) {
     int haveSwitch=0;
     for(const char *c=cmd; *c; ++c)
         if(c[0]=='/' && (c[1]=='S'||c[1]=='s')) haveSwitch=1;
-    HANDLE marker=CreateFileA("C:\\AWEINST\\CW9.ENTRY",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
+    HANDLE marker=CreateFileA("C:\\AWEINST\\CW9ENT.TXT",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
     DWORD n=0;
+    DWORD cmdLen=0;
+    while(cmd[cmdLen] && cmdLen<120) ++cmdLen;
     if(marker!=INVALID_HANDLE_VALUE) {
-        WriteFile(marker,cmd,160,&n,0);
+        WriteFile(marker,cmd,cmdLen,&n,0);
         CloseHandle(marker);
     }
     if(!haveSwitch) ExitProcess(41);
-    HANDLE f=CreateFileA("C:\\AWEINST\\CW9.PROOF",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
+    HANDLE f=CreateFileA("C:\\AWEINST\\CW9PRF.TXT",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
     if(f==INVALID_HANDLE_VALUE) ExitProcess(42);
     BOOL ok=WriteFile(f,msg,sizeof(msg)-1,&n,0);
     CloseHandle(f);
