@@ -1,0 +1,34 @@
+name: Verify safe post-86Box inspection
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/AfterShutdown.ps1'
+      - '.github/workflows/verify-aftershutdown.yml'
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell syntax without executing a VM
+        shell: powershell
+        run: |
+          $tokens=$null
+          $errors=$null
+          $p=Join-Path $PWD 'scripts\AfterShutdown.ps1'
+          [void][System.Management.Automation.Language.Parser]::ParseFile($p,[ref]$tokens,[ref]$errors)
+          if ($errors -and $errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_.Message }
+            throw 'PowerShell parser found errors.'
+          }
+          Write-Host 'PASS: PowerShell syntax'
+      - name: Missing disk must not produce success
+        shell: powershell
+        run: |
+          $script=Join-Path $PWD 'scripts\AfterShutdown.ps1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
+          if ($LASTEXITCODE -ne 2) { throw "Expected fail-closed code 2, got $LASTEXITCODE" }
+          Write-Host 'PASS: Missing disk/inspector does not imply successful installation.'
